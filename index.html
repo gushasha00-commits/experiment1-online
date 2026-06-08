@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>视频观看实验（线上版）</title>
+<!-- SheetJS for Excel export -->
+<script src="https://cdn.bootcdn.net/ajax/libs/xlsx/0.20.3/xlsx.full.min.js"></script>
+<script>
+if(typeof XLSX==='undefined'){document.write('<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"><\/script>');}
+</script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"Microsoft YaHei","PingFang SC",sans-serif;background:#000;color:#ddd;line-height:1.8;font-size:18px}
+.container{max-width:1100px;margin:0 auto;padding:24px}
+.section{display:none;background:#111;border:1px solid #333;border-radius:8px;padding:48px 40px;margin:20px 0}
+.section.active{display:block}
+h1{font-size:28px;margin-bottom:16px;color:#fff}
+h2{font-size:26px;margin-bottom:28px;color:#fff;border-bottom:2px solid #4a90d9;padding-bottom:12px}
+p{margin-bottom:14px;font-size:18px}
+.btn{display:inline-block;padding:16px 40px;background:#4a90d9;color:#fff;border:none;border-radius:6px;font-size:20px;cursor:pointer;transition:background .2s}
+.btn:hover{background:#5aa0e9}
+.btn:disabled{background:#444;color:#888;cursor:not-allowed}
+.btn-green{background:#27ae60}.btn-green:hover{background:#2ecc71}
+.btn-orange{background:#e67e22}.btn-orange:hover{background:#f39c12}
+.form-group{margin-bottom:24px}
+label{display:block;margin-bottom:8px;font-weight:500;font-size:18px}
+input[type="text"],input[type="number"],select,textarea{width:100%;padding:14px;border:1px solid #444;border-radius:6px;font-size:18px;background:#1a1a1a;color:#ddd}
+input:focus,select:focus,textarea:focus{outline:none;border-color:#4a90d9}
+input[type="radio"]{margin-right:8px;transform:scale(1.3)}
+.radio-group{display:flex;flex-wrap:wrap;gap:20px;margin-top:8px}
+.radio-group label{font-weight:normal;display:inline-flex;align-items:center;cursor:pointer;font-size:18px}
+.scale-item{margin-bottom:30px;padding:20px;background:#1a1a1a;border-radius:8px;border-left:4px solid #4a90d9}
+.scale-item .item-text{margin-bottom:14px;font-size:18px}
+.scale-options{display:flex;justify-content:flex-start;gap:20px}
+.scale-options label{display:flex;flex-direction:column;align-items:center;font-weight:normal;font-size:14px;color:#999;cursor:pointer;padding:6px}
+.video-container{position:relative;background:#000;border-radius:4px;overflow:hidden;margin-bottom:20px}
+.video-container video{width:100%;display:block;max-height:70vh}
+.speed-controls{display:flex;align-items:center;justify-content:center;gap:12px;padding:18px;background:#111;flex-wrap:wrap}
+.speed-btn{padding:12px 22px;border:2px solid #555;background:transparent;color:#bbb;border-radius:24px;cursor:pointer;font-size:18px;transition:all .2s}
+.speed-btn:hover{border-color:#4a90d9;color:#fff}
+.speed-btn.active{background:#4a90d9;border-color:#4a90d9;color:#fff}
+.progress-bar{height:5px;background:#333;position:relative}
+.progress-fill{height:100%;background:#4a90d9;transition:width .3s}
+.rest-timer{text-align:center;font-size:96px;font-weight:bold;color:#4a90d9;margin:50px 0}
+.rest-message{text-align:center;font-size:22px;color:#aaa;margin-bottom:24px}
+.instructions{background:#1a2a1a;border:1px solid #2a4a2a;padding:24px;border-radius:8px;margin-bottom:24px}
+.instructions p{font-size:20px}
+.consent-box{border:1px solid #444;padding:24px;border-radius:8px;margin-bottom:24px;max-height:320px;overflow-y:auto;background:#1a1a1a;font-size:17px}
+.success-msg{background:#0d2818;border:1px solid #1a5a30;color:#4caf84;padding:20px;border-radius:8px;margin:20px 0}
+.warning{color:#c9a33c;background:#2a2010;padding:12px 18px;border-radius:6px;margin:10px 0;font-size:16px}
+.video-time-display{color:#ccc;font-size:16px;text-align:center;padding:10px;background:#111}
+select{background:#1a1a1a;color:#ddd}select option{background:#1a1a1a;color:#ddd}
+.spinner{display:inline-block;width:20px;height:20px;border:2px solid #444;border-top-color:#4a90d9;border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;margin-right:8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+#submitStatus{margin-top:12px;padding:10px;border-radius:6px;display:none}
+#submitStatus.info{display:block;background:#1a2a3a;border:1px solid #2a4a6a;color:#7ab8e0}
+#submitStatus.success{display:block;background:#0d2818;border:1px solid #1a5a30;color:#4caf84}
+#submitStatus.error{display:block;background:#2a1010;border:1px solid #5a2020;color:#e74c3c}
+.copy-area{margin-top:16px}
+.copy-area textarea{width:100%;height:80px;font-size:12px;font-family:monospace;background:#1a1a1a;color:#888;border:1px solid #333;border-radius:4px;padding:8px;resize:none}
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- ====== SECTION 1: CONSENT ====== -->
+<div class="section active" id="sec1">
+<h2>实验说明与知情同意书</h2>
+<div class="consent-box">
+<p><strong>欢迎参加本线上实验！</strong>本实验全程通过网页完成，约<strong>15分钟</strong>。</p>
+<p><strong>自愿原则：</strong>本实验完全自愿，您可在任何时候退出，不会产生任何不利后果。</p>
+<p><strong>数据保密：</strong>所有数据仅用于学术研究，匿名处理，不会泄露您的个人信息。</p>
+<p><strong>技术要求：</strong>请使用电脑/平板 + Chrome/Edge浏览器，确保网络畅通、设备可播放音频。</p>
+<p>如有疑问请联系研究者。</p>
+</div>
+<div class="form-group"><label><input type="checkbox" id="consentCheck"> 我已阅读并理解以上内容，自愿参加本实验。</label></div>
+<button class="btn" id="btnConsent" disabled onclick="goTo(2)">同意并继续</button>
+</div>
+
+<!-- ====== SECTION 2: DEMOGRAPHICS ====== -->
+<div class="section" id="sec2">
+<h2>基本信息问卷</h2>
+<div class="form-group"><label>年龄</label><input type="number" id="age" min="18" max="30" placeholder="请输入年龄"></div>
+<div class="form-group"><label>性别</label><div class="radio-group"><label><input type="radio" name="gender" value="男"> 男</label><label><input type="radio" name="gender" value="女"> 女</label></div></div>
+<div class="form-group"><label>年级</label><select id="grade"><option value="">请选择</option><option>大一</option><option>大二</option><option>大三</option><option>大四</option><option>研一</option><option>研二</option><option>研三</option><option>其他</option></select></div>
+<div class="form-group"><label>专业</label><input type="text" id="major" placeholder="请输入专业"></div>
+<div class="form-group"><label>日常每天视频观看时长（小时/天）</label><input type="number" id="dailyVideoHours" min="0" max="24" step="0.5" placeholder="请输入"></div>
+<div class="form-group"><label>日常倍速使用频率</label><select id="dailySpeedFreq"><option value="">请选择</option><option value="1">几乎不使用倍速</option><option value="2">偶尔使用倍速</option><option value="3">经常使用倍速</option><option value="4">几乎每次都用倍速</option></select></div>
+<button class="btn" id="btnDemo" onclick="submitDemographics()">继续</button>
+</div>
+
+<!-- ====== SECTION 3: DGI SCALE ====== -->
+<div class="section" id="sec3">
+<h2>个人特质问卷</h2>
+<p style="color:#999;margin-bottom:24px">请根据您的真实情况回答，从1（非常不符合）到5（非常符合）中选择。答案无好坏对错之分，匿名处理保护隐私。</p>
+<div id="dgiItems"></div>
+<button class="btn" id="btnDGI" onclick="submitDGI()">提交并继续</button>
+</div>
+
+<!-- ====== SECTION 4: REST ====== -->
+<div class="section" id="sec4">
+<h2>休息时间</h2>
+<p class="rest-message">请稍作休息，接下来将进入视频观看阶段。</p>
+<div class="rest-timer" id="restTimer">60</div>
+<p style="text-align:center;color:#777;font-size:16px">秒后自动进入</p>
+</div>
+
+<!-- ====== SECTION 5: VIDEO ====== -->
+<div class="section" id="sec5">
+<div class="instructions"><p>接下来请观看一段视频。<strong>请按你平时最自然、最舒服的方式观看。</strong>可自由调整播放速度。</p></div>
+<div class="video-container" id="videoContainer">
+<video id="mainVideo" playsinline disableRemotePlayback controlsList="nofullscreen noplaybackrate nodownload" preload="auto" crossorigin="anonymous">
+<source src="" type="video/mp4" id="videoSource">
+</video>
+<div id="videoLoading" style="position:absolute;top:0;left:0;width:100%;height:100%;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.85);z-index:5">
+<div style="text-align:center;color:#fff"><div class="spinner" style="width:40px;height:40px;border-width:3px"></div><div style="margin-top:16px;font-size:16px">视频加载中，请耐心等待...</div></div>
+</div>
+<div id="playOverlay" onclick="startPlayback()" style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.6);cursor:pointer;z-index:10">
+<div style="text-align:center;color:#fff"><div style="font-size:60px;margin-bottom:16px">▶</div><div style="font-size:24px">点击开始观看</div><div style="font-size:15px;color:#888;margin-top:8px">观看时可自由调整播放速度</div></div>
+</div>
+<div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+<div class="video-time-display">已观看: <span id="watchedTime">00:00</span> / <span id="totalTime">00:00</span> &nbsp;|&nbsp; 当前倍速: <span id="currentSpeedDisplay">1.0x</span></div>
+</div>
+<div class="speed-controls">
+<button class="speed-btn" data-speed="0.75">0.75x</button>
+<button class="speed-btn active" data-speed="1.0">1.0x</button>
+<button class="speed-btn" data-speed="1.25">1.25x</button>
+<button class="speed-btn" data-speed="1.5">1.5x</button>
+<button class="speed-btn" data-speed="1.75">1.75x</button>
+<button class="speed-btn" data-speed="2.0">2.0x</button>
+<button class="speed-btn" data-speed="2.5">2.5x</button>
+<button class="speed-btn" data-speed="3.0">3.0x</button>
+</div>
+</div>
+
+<!-- ====== SECTION 6: POST-VIEWING ====== -->
+<div class="section" id="sec6">
+<h2>观看后问卷</h2>
+<div class="form-group"><label>视频有趣吗？（1=非常无聊，7=非常有趣）</label><div class="radio-group" id="interestRating"></div></div>
+<div class="form-group"><label>视频难吗？（1=非常简单，7=非常困难）</label><div class="radio-group" id="difficultyRating"></div></div>
+<div class="form-group"><label>理解了多少内容？（0=完全没理解，100=完全理解）</label><input type="number" id="comprehension" min="0" max="100" placeholder="0-100"></div>
+<div class="form-group"><label>观看时感到无聊吗？（1=完全不无聊，7=非常无聊）</label><div class="radio-group" id="boredomRating"></div></div>
+<div class="form-group"><label>观看时感到急躁吗？（1=完全不急躁，7=非常急躁）</label><div class="radio-group" id="impatienceRating"></div></div>
+<div class="form-group"><label>之前看过这个视频吗？</label><div class="radio-group"><label><input type="radio" name="seenBefore" value="1"> 看过</label><label><input type="radio" name="seenBefore" value="0"> 没看过</label></div></div>
+<button class="btn" id="btnPostQ" onclick="submitPostQ()">提交</button>
+</div>
+
+<!-- ====== SECTION 7: END ====== -->
+<div class="section" id="sec7">
+<h2>实验结束 - 感谢您的参与！</h2>
+<div class="success-msg"><p><strong>感谢您的参与！</strong></p><p>您的播放数据已匿名记录。请下载数据文件并发送给研究者。</p></div>
+<div id="submitStatus" class="info"><span class="spinner"></span>正在准备数据...</div>
+<div style="margin-top:20px;display:flex;flex-wrap:wrap;gap:12px">
+<button class="btn btn-green" id="btnDownload" onclick="downloadExcel()">📥 下载数据文件</button>
+</div>
+<div class="copy-area" style="margin-top:20px">
+<p style="color:#aaa;font-size:15px;margin-bottom:8px">备用：如无法下载，可复制下方数据发送给研究者</p>
+<textarea id="dataJson" readonly onclick="this.select()"></textarea>
+<button class="btn btn-orange" style="padding:8px 20px;font-size:15px;margin-top:8px" onclick="copyData()">📋 复制数据</button>
+<span id="copyMsg" style="color:#4caf84;font-size:14px;margin-left:8px;display:none">已复制!</span>
+</div>
+<p style="color:#888;font-size:14px;margin-top:16px">请将下载的数据文件（.xlsx）通过以下方式发送给研究者：<br>📧 邮箱: [研究者邮箱] &nbsp;|&nbsp; 📱 微信: [研究者微信]</p>
+</div>
+
+</div><!--/container-->
+
+<script>
+// ============================================================
+// CONFIG (部署时修改)
+// ============================================================
+var CONFIG = {
+  // 视频URL（上传到GitHub Releases后替换此链接）
+  videoUrl: 'video.mp4',
+  // Google Sheets 数据收集（可选，设置后自动提交）
+  googleScriptUrl: ''
+};
+(function(){
+  var p=new URLSearchParams(location.search);
+  if(p.get('video')) CONFIG.videoUrl=p.get('video');
+  if(p.get('gs')) CONFIG.googleScriptUrl=p.get('gs');
+})();
+
+// ============================================================
+// STATE
+// ============================================================
+var SPEEDS=[0.75,1.0,1.25,1.5,1.75,2.0,2.5,3.0];
+var participantData={
+  participantId:'P'+Date.now()+'_'+Math.random().toString(36).substr(2,6),
+  timestamp:new Date().toISOString(),
+  experimentVersion:'github_pages_v1',
+  demographics:{},dgi:{},dgiScores:{},speedLog:[],postQuestionnaire:{},debriefing:{}
+};
+var videoStartTime=null,lastSpeedChangeTime=null,currentSpeed=1.0,speedLogInterval=null;
+var videoEnded=false,playbackActive=false,lastKnownTime=0;
+
+// ============================================================
+// DGI ITEMS
+// ============================================================
+var DGI_ITEMS=[
+  {id:1,domain:'food',rev:0,t:'只要我想，我可以拒绝美味却不健康的食物。'},
+  {id:2,domain:'social',rev:1,t:'在社会生活中，我讨厌轮流等待才能轮到我。'},
+  {id:3,domain:'money',rev:0,t:'当我有能力时，我会尽量存一些钱以备不时之需。'},
+  {id:4,domain:'achievement',rev:0,t:'以往在学校时，我会努力学习以提升自我。'},
+  {id:101,domain:'lie',lt:'infrequency',t:'我从来没有对别人说过谎，哪怕是很小的谎言。'},
+  {id:5,domain:'food',rev:1,t:'对我来说坚持一项健康的饮食有些难。'},
+  {id:6,domain:'physical',rev:0,t:'我喜欢与他人建立亲密关系之前先了解这个人。'},
+  {id:7,domain:'social',rev:0,t:'我通常都会考虑我的行为会对他人产生怎样的影响。'},
+  {id:8,domain:'money',rev:1,t:'即使是现阶段负担不起的物品，我有时也会想办法预支购买（分期付款，信用贷款等）。'},
+  {id:9,domain:'achievement',rev:0,t:'以往在学校时，我试着努力学习，这样才能有一个美好的未来。'},
+  {id:10,domain:'food',rev:1,t:'一般情况下，当我最喜欢的食物出现在面前时，我有时会等不及要吃它。'},
+  {id:11,domain:'physical',rev:1,t:'从长远来看，我有时享受"即时愉悦感"的习惯或行为让我付出了代价。'},
+  {id:12,domain:'social',rev:0,t:'我认为互帮互助是有利于社会的。'},
+  {id:13,domain:'money',rev:0,t:'我试着合理地花钱。'},
+  {id:102,domain:'lie',lt:'contradict_1',t:'和大多数人相比，我在饮食方面的自控力更强一些。'},
+  {id:14,domain:'achievement',rev:1,t:'以往在学校学习时，我有时会试着走捷径（"偷懒"、"作弊"、"临时抱佛脚"等行为）。'},
+  {id:15,domain:'food',rev:0,t:'我觉得不吃零食是很容易的。'},
+  {id:16,domain:'physical',rev:0,t:'我能够牺牲身体上的"即时愉悦感"以达到健康的目标。'},
+  {id:17,domain:'social',rev:0,t:'我会考虑我的行为将怎样在长时间内影响他人。'},
+  {id:18,domain:'money',rev:1,t:'别人不放心把钱交给我管。'},
+  {id:19,domain:'achievement',rev:0,t:'我有能力通过努力工作来获得成功。'},
+  {id:20,domain:'food',rev:1,t:'有时我会一直吃直到我吃饱，甚至吃不下为止（有时候吃到恶心或想吐）。'},
+  {id:21,domain:'physical',rev:1,t:'我更喜欢直接探索恋爱关系中性的相关方面。'},
+  {id:22,domain:'social',rev:1,t:'我不会考虑自己的行为会对别人产生怎样的影响。'},
+  {id:23,domain:'achievement',rev:1,t:'我不能激励自己去实现长期目标。'},
+  {id:24,domain:'food',rev:0,t:'我一直努力吃得健康一些，因为从长远来看这是值得的。'},
+  {id:103,domain:'lie',lt:'contradict_2',t:'面对美食时，我常常比身边其他人更难管住自己。'},
+  {id:25,domain:'physical',rev:1,t:'在生活中，当我面临一项体力活动时，我会尽量把它留到之后再做。'},
+  {id:26,domain:'social',rev:0,t:'我重视周围人的需求。'},
+  {id:27,domain:'money',rev:0,t:'我善于理财。'},
+  {id:28,domain:'food',rev:0,t:'即使我饿了，我也可以等到合适的进食时间再吃东西。'},
+  {id:29,domain:'physical',rev:1,t:'我有时会为了获得"即时愉悦感"而撒谎或者找借口。'},
+  {id:30,domain:'social',rev:1,t:'没有必要考虑我的决定如何影响他人。'},
+  {id:31,domain:'money',rev:1,t:'我一有钱就想马上消费。'},
+  {id:104,domain:'lie',lt:'selfreport',t:'我付出了足够的努力来认真回答以上每一道题目。'},
+  {id:32,domain:'achievement',rev:1,t:'大多数情况下，相较于是努力学习或工作以"出人头地"，我更愿意过轻松普通的生活。'}
+];
+
+// ============================================================
+// INIT
+// ============================================================
+document.addEventListener('DOMContentLoaded',function(){
+  document.getElementById('videoSource').src=CONFIG.videoUrl;
+  document.getElementById('consentCheck').onchange=function(){
+    document.getElementById('btnConsent').disabled=!this.checked;
+  };
+  buildDGI();buildRatings();
+  var v=document.getElementById('mainVideo');
+  document.querySelectorAll('.speed-btn').forEach(function(b){
+    b.onclick=function(){changeSpeed(parseFloat(this.dataset.speed));};
+  });
+  v.addEventListener('loadstart',function(){document.getElementById('videoLoading').style.display='flex';});
+  v.addEventListener('canplay',function(){document.getElementById('videoLoading').style.display='none';});
+  v.addEventListener('waiting',function(){if(playbackActive&&!videoEnded)document.getElementById('videoLoading').style.display='flex';});
+  v.addEventListener('playing',function(){document.getElementById('videoLoading').style.display='none';});
+  v.addEventListener('timeupdate',function(){if(!videoEnded&&!v.seeking&&playbackActive)lastKnownTime=v.currentTime;updateProgress();});
+  v.addEventListener('loadedmetadata',function(){document.getElementById('totalTime').textContent=fmt(v.duration);});
+  v.addEventListener('ended',onVideoEnded);
+  v.addEventListener('error',function(){
+    var c=v.error?v.error.code:0;var m={1:'加载被中止',2:'网络错误',3:'解码失败',4:'文件未找到'};
+    document.getElementById('videoLoading').style.display='flex';
+    document.getElementById('videoLoading').innerHTML='<div style="text-align:center;color:#e74c3c"><div style="font-size:40px;margin-bottom:12px">&#9888;</div><div style="font-size:18px">视频加载失败</div><div style="font-size:14px;color:#999">'+(m[c]||'未知错误')+'</div></div>';
+  });
+  v.addEventListener('pause',function(){if(playbackActive&&!videoEnded&&v.currentTime<v.duration-0.5)setTimeout(function(){if(playbackActive&&v.paused)v.play().catch(function(){});},100);});
+  v.addEventListener('seeking',function(){if(playbackActive&&!videoEnded)v.currentTime=lastKnownTime;});
+  v.addEventListener('contextmenu',function(e){e.preventDefault();});
+  document.addEventListener('keydown',function(e){
+    if(document.getElementById('sec5').classList.contains('active')&&playbackActive){
+      if(e.key==='ArrowUp'||e.key==='ArrowRight'){e.preventDefault();var i=SPEEDS.indexOf(currentSpeed);if(i<SPEEDS.length-1)changeSpeed(SPEEDS[i+1]);}
+      if(e.key==='ArrowDown'||e.key==='ArrowLeft'){e.preventDefault();var i=SPEEDS.indexOf(currentSpeed);if(i>0)changeSpeed(SPEEDS[i-1]);}
+    }
+  });
+  window.addEventListener('beforeunload',function(e){if(playbackActive&&!videoEnded){e.preventDefault();e.returnValue='实验尚未完成，确定离开？数据将丢失。';return e.returnValue;}});
+});
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function goTo(n){
+  document.querySelectorAll('.section').forEach(function(s){s.classList.remove('active');});
+  var sec=document.getElementById('sec'+n);if(sec)sec.classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(n===4)startRest();
+  if(n===7)prepareEnd();
+}
+
+// ============================================================
+// DEMOGRAPHICS
+// ============================================================
+function submitDemographics(){
+  var a=document.getElementById('age').value,g=document.querySelector('input[name="gender"]:checked');
+  var gr=document.getElementById('grade').value,mj=document.getElementById('major').value;
+  var dh=document.getElementById('dailyVideoHours').value,sf=document.getElementById('dailySpeedFreq').value;
+  if(!a||!g||!gr||!mj||!dh||!sf){alert('请填写所有必填项。');return;}
+  if(a<18||a>30){alert('本实验仅面向18-30岁的被试。');return;}
+  participantData.demographics={age:a,gender:g.value,grade:gr,major:mj,dailyVideoHours:dh,dailySpeedFreq:sf};
+  goTo(3);
+}
+
+// ============================================================
+// DGI
+// ============================================================
+function buildDGI(){
+  var c=document.getElementById('dgiItems'),h='';
+  DGI_ITEMS.forEach(function(it,idx){
+    h+='<div class="scale-item"><div class="item-text">'+(idx+1)+'. '+it.t+'</div><div class="scale-options">';
+    for(var v=1;v<=5;v++){var lb=['','非常不符合','比较不符合','一般符合','比较符合','非常符合'];h+='<label><input type="radio" name="dgi_'+it.id+'" value="'+v+'" required>'+v+'<br>'+lb[v]+'</label>';}
+    h+='</div></div>';
+  });
+  c.innerHTML=h;
+}
+function submitDGI(){
+  var ok=true,resp={};
+  DGI_ITEMS.forEach(function(it){var s=document.querySelector('input[name="dgi_'+it.id+'"]:checked');if(!s){ok=false;return;}resp[it.id]=parseInt(s.value);});
+  if(!ok){alert('请完成所有题目后再提交。');return;}
+  var total=0,ds={food:0,physical:0,social:0,money:0,achievement:0},dc={food:0,physical:0,social:0,money:0,achievement:0};
+  DGI_ITEMS.forEach(function(it){if(it.domain==='lie')return;var r=resp[it.id],s=it.rev?(6-r):r;total+=s;ds[it.domain]+=s;dc[it.domain]++;});
+  var da={};for(var d in ds)da[d]=ds[d]/dc[d];
+  participantData.dgi={responses:resp,totalScore:total,domainScores:ds,domainAvgs:da,domainCounts:dc};
+  participantData.dgiScores={total:total,food:da.food,physical:da.physical,social:da.social,money:da.money,achievement:da.achievement};
+  goTo(4);
+}
+
+// ============================================================
+// REST
+// ============================================================
+function startRest(){var s=60,el=document.getElementById('restTimer');el.textContent=s;var iv=setInterval(function(){s--;el.textContent=s;if(s<=0){clearInterval(iv);goTo(5);}},1000);}
+
+// ============================================================
+// VIDEO
+// ============================================================
+function startPlayback(){
+  var v=document.getElementById('mainVideo'),ov=document.getElementById('playOverlay');
+  if(!v||videoEnded)return;
+  if(!v.src||v.src===location.href){alert('视频未配置。请联系研究者。');return;}
+  v.playbackRate=1.0;currentSpeed=1.0;videoStartTime=Date.now();lastSpeedChangeTime=videoStartTime;playbackActive=true;
+  participantData.speedLog.push({time:0,speed:1.0,cumulativeTime:0});
+  speedLogInterval=setInterval(function(){if(!v.paused&&!videoEnded){var le=participantData.speedLog[participantData.speedLog.length-1];if(le)le.cumulativeTime+=0.5;}},500);
+  v.play().then(function(){ov.style.display='none';}).catch(function(e){alert('视频播放失败，请检查网络后刷新。\n'+e.message);});
+}
+function changeSpeed(ns){
+  var v=document.getElementById('mainVideo');if(!v||videoEnded)return;
+  var now=Date.now(),elapsed=(now-lastSpeedChangeTime)/1000;
+  if(participantData.speedLog.length>0)participantData.speedLog[participantData.speedLog.length-1].duration=elapsed;
+  v.playbackRate=ns;currentSpeed=ns;lastSpeedChangeTime=now;
+  participantData.speedLog.push({time:v.currentTime,speed:ns,cumulativeTime:0,timestamp:new Date().toISOString()});
+  document.querySelectorAll('.speed-btn').forEach(function(b){b.classList.toggle('active',parseFloat(b.dataset.speed)===ns);});
+  document.getElementById('currentSpeedDisplay').textContent=ns.toFixed(2)+'x';
+}
+function updateProgress(){
+  var v=document.getElementById('mainVideo');if(!v||!v.duration)return;
+  document.getElementById('progressFill').style.width=(v.currentTime/v.duration*100)+'%';
+  document.getElementById('watchedTime').textContent=fmt(v.currentTime);
+}
+function onVideoEnded(){
+  videoEnded=true;clearInterval(speedLogInterval);
+  if(participantData.speedLog.length>0)participantData.speedLog[participantData.speedLog.length-1].duration=(Date.now()-lastSpeedChangeTime)/1000;
+  calcMetrics();goTo(6);
+}
+function calcMetrics(){
+  var log=participantData.speedLog;if(!log.length)return;
+  var tws=0,td=0;log.forEach(function(e){if(e.duration&&e.duration>0){tws+=e.speed*e.duration;td+=e.duration;}});
+  var as=td>0?tws/td:1.0,fs=log[log.length-1].speed,ms=Math.max.apply(null,log.map(function(e){return e.speed;}));
+  var fat=null;for(var i=0;i<log.length;i++){if(log[i].speed>1.0){fat=log[i].time;break;}}
+  var ac=log.length-1,hst=0;log.forEach(function(e){if(e.speed>=1.5&&e.duration&&e.duration>0)hst+=e.duration;});
+  var hsr=td>0?hst/td:0;
+  var ve=document.getElementById('mainVideo'),vd=ve?ve.duration:td;
+  participantData.speedMetrics={avgSpeed:+as.toFixed(4),finalSpeed:fs,maxSpeed:ms,firstAccelTime:+(fat||0).toFixed(2),adjustmentCount:ac,highSpeedRatio:+hsr.toFixed(4),totalWatchTime:+td.toFixed(2),watchCompletionRate:+(td/(vd||td)).toFixed(4)};
+}
+
+// ============================================================
+// POST Q
+// ============================================================
+function buildRatings(){
+  ['interestRating','difficultyRating','boredomRating','impatienceRating'].forEach(function(id){
+    var c=document.getElementById(id),h='';for(var i=1;i<=7;i++)h+='<label><input type="radio" name="'+id+'" value="'+i+'"> '+i+'</label>';c.innerHTML=h;
+  });
+}
+function submitPostQ(){
+  var ir=document.querySelector('input[name="interestRating"]:checked'),dr=document.querySelector('input[name="difficultyRating"]:checked');
+  var cp=document.getElementById('comprehension').value,br=document.querySelector('input[name="boredomRating"]:checked');
+  var im=document.querySelector('input[name="impatienceRating"]:checked'),sb=document.querySelector('input[name="seenBefore"]:checked');
+  if(!ir||!dr||cp===''||!br||!im||!sb){alert('请完成所有题目。');return;}
+  participantData.postQuestionnaire={interest:+ir.value,difficulty:+dr.value,comprehension:+cp,boredom:+br.value,impatience:+im.value,seenBefore:+sb.value};
+  goTo(7);
+}
+
+// ============================================================
+// END
+// ============================================================
+function prepareEnd(){
+  var sel=document.getElementById('submitStatus');
+  sel.className='info';sel.innerHTML='<span class="spinner"></span>正在准备数据...';
+  // 显示JSON
+  document.getElementById('dataJson').value=JSON.stringify(participantData,null,2);
+  // 如果配置了Google Script，尝试自动提交
+  if(CONFIG.googleScriptUrl){
+    sel.innerHTML='<span class="spinner"></span>正在提交数据至云端...';
+    submitToGoogle(participantData,function(err){
+      if(err){sel.className='error';sel.innerHTML='⚠ 自动提交失败。请手动下载文件发送给研究者。<br>'+err;}
+      else{sel.className='success';sel.innerHTML='✅ 数据已成功提交！感谢您的参与。';}
+    });
+  }else{
+    sel.className='success';sel.innerHTML='✅ 实验完成！请下载数据文件并发送给研究者。';
+  }
+}
+function submitToGoogle(data,cb){
+  if(!CONFIG.googleScriptUrl){cb('未配置提交地址');return;}
+  var fd=new FormData();fd.append('data',JSON.stringify(data));
+  var xhr=new XMLHttpRequest();
+  xhr.open('POST',CONFIG.googleScriptUrl,true);
+  xhr.onload=function(){if(xhr.status>=200&&xhr.status<300)cb(null);else cb('HTTP '+xhr.status);};
+  xhr.onerror=function(){cb('网络错误');};
+  xhr.send(fd);
+}
+
+// ============================================================
+// EXPORT
+// ============================================================
+function downloadExcel(){
+  if(typeof XLSX==='undefined'){alert('Excel组件加载中，请稍后重试。');return;}
+  var d=[participantData],hdrs=['被试ID','时间戳','年龄','性别','年级','专业','日常视频时长_h','日常倍速频率','DGI总分','DGI食物','DGI身体','DGI社交','DGI金钱','DGI成就'];
+  for(var t=1;t<=32;t++)hdrs.push('DGI_'+t);
+  hdrs.push('测谎1_说谎','测谎2_饮食自控','测谎3_更难管住','测谎4_认真度');
+  hdrs.push('平均观看速度','最终播放速度','最高播放速度','首次加速时间_s','倍速调整次数','高倍速停留比例','总观看时长_s','观看完成率','视频兴趣','视频难度','主观理解度','观看无聊感','观看急躁感','是否看过视频');
+  var rows=[hdrs];
+  d.forEach(function(dd){
+    var m=dd.speedMetrics||{},dm=dd.demographics||{},dg=dd.dgiScores||{},pq=dd.postQuestionnaire||{},resp=(dd.dgi||{}).responses||{};
+    var row=[dd.participantId||'',dd.timestamp||'',dm.age||'',dm.gender||'',dm.grade||'',dm.major||'',dm.dailyVideoHours||'',dm.dailySpeedFreq||'',dg.total||'',dg.food||'',dg.physical||'',dg.social||'',dg.money||'',dg.achievement||''];
+    for(var t=1;t<=32;t++)row.push(resp[t]!==undefined?resp[t]:'');
+    row.push(resp[101]!==undefined?resp[101]:'',resp[102]!==undefined?resp[102]:'',resp[103]!==undefined?resp[103]:'',resp[104]!==undefined?resp[104]:'');
+    row.push(m.avgSpeed||'',m.finalSpeed||'',m.maxSpeed||'',m.firstAccelTime||'',m.adjustmentCount||'',m.highSpeedRatio||'',m.totalWatchTime||'',m.watchCompletionRate||'');
+    row.push(pq.interest||'',pq.difficulty||'',pq.comprehension||'',pq.boredom||'',pq.impatience||'',pq.seenBefore||'');
+    rows.push(row);
+  });
+  var ws=XLSX.utils.aoa_to_sheet(rows);ws['!cols']=hdrs.map(function(){return{wch:20};});var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Sheet1');
+  var now=new Date(),ds=now.getFullYear()+('0'+(now.getMonth()+1)).slice(-2)+('0'+now.getDate()).slice(-2)+'_'+('0'+now.getHours()).slice(-2)+('0'+now.getMinutes()).slice(-2);
+  XLSX.writeFile(wb,'experiment1_data_'+ds+'.xlsx');
+}
+function copyData(){
+  var ta=document.getElementById('dataJson');ta.select();document.execCommand('copy');
+  var msg=document.getElementById('copyMsg');msg.style.display='inline';setTimeout(function(){msg.style.display='none';},2000);
+}
+function fmt(s){if(isNaN(s)||s===Infinity)return'00:00';var m=Math.floor(s/60),sec=Math.floor(s%60);return String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');}
+</script>
+</body>
+</html>
