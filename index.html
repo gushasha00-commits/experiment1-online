@@ -171,7 +171,11 @@ select{background:#1a1a1a;color:#ddd}select option{background:#1a1a1a;color:#ddd
 // ============================================================
 var CONFIG = {
   // 视频URL（上传到GitHub Releases后替换此链接）
-  videoUrl: 'https://github.com/gushasha00-commits/experiment1-online/releases/download/v1.0/video.mp4',
+  // 视频URL：可通过 ?video=你的URL 参数动态覆盖
+  // GitHub Release直链在中国大陆可能无法访问，建议：
+  //   方案1: 上传到国内云存储（OSS/COS/七牛云）获取直链
+  //   方案2: 与server.py搭配使用，设为 video.mp4
+  videoUrl: 'video.mp4',
   // Google Sheets 数据收集（可选，设置后自动提交）
   googleScriptUrl: ''
 };
@@ -324,7 +328,7 @@ function submitDGI(){
 // ============================================================
 // REST
 // ============================================================
-function startRest(){var s=60,el=document.getElementById('restTimer');el.textContent=s;var iv=setInterval(function(){s--;el.textContent=s;if(s<=0){clearInterval(iv);goTo(5);}},1000);}
+function startRest(){var s=10,el=document.getElementById('restTimer');el.textContent=s;var iv=setInterval(function(){s--;el.textContent=s;if(s<=0){clearInterval(iv);goTo(5);}},1000);}
 
 // ============================================================
 // VIDEO
@@ -332,7 +336,8 @@ function startRest(){var s=60,el=document.getElementById('restTimer');el.textCon
 function startPlayback(){
   var v=document.getElementById('mainVideo'),ov=document.getElementById('playOverlay');
   if(!v||videoEnded)return;
-  if(!v.src||v.src===location.href){alert('视频未配置。请联系研究者。');return;}
+  var src=v.src||v.currentSrc||document.getElementById('videoSource').src;
+  if(!src||src===location.href){alert('视频URL未配置。请联系研究者，或通过 ?video=视频地址 参数指定。');return;}
   v.playbackRate=1.0;currentSpeed=1.0;videoStartTime=Date.now();lastSpeedChangeTime=videoStartTime;playbackActive=true;
   participantData.speedLog.push({time:0,speed:1.0,cumulativeTime:0});
   speedLogInterval=setInterval(function(){if(!v.paused&&!videoEnded){var le=participantData.speedLog[participantData.speedLog.length-1];if(le)le.cumulativeTime+=0.5;}},500);
